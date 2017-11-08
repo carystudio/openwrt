@@ -102,6 +102,19 @@ define MkImageSysupgrade/squashfs
 	fi
 endef
 
+define TotolinkSysupgrade/squashfs
+$(eval output_name=$(IMG_PREFIX)-$(4)-$(1)-sysupgrade.bin)
+	cat $(KDIR)/vmlinux-$(2).uImage $(KDIR)/root.$(1) > $(KDIR)/$(output_name) 
+	$(call prepare_；generic_squashfs,$(KDIR)/$(output_name))
+	if [ `stat -c%s "$(KDIR)/$(output_name)"` -gt $(3) ]; then \
+	echo "Warning: $(KDIR)/$(output_name) is too big" >&2; \
+	else \
+	$(CP) $(KDIR)/$(output_name) $(BIN_DIR)/$(output_name); \
+	$(CP) $(KDIR)/$(output_name) $(BIN_DIR)/test.bin; \
+	$(CP) $(KDIR)/$(output_name) $(BIN_DIR)/$(4)_$(SVNNUM)_$(BUILDDATE).web; \
+	fi
+endef
+
 # $(1), lowercase board name like "mt7620a_v22sg"
 # $(2), DTS filename without .dts extension
 # $(3), optional filename suffix, e.g. "-initramfs"
@@ -121,6 +134,12 @@ define MkImageLzmaDtb
 	$(call MkImage,lzma,$(KDIR)/vmlinux-$(1)$(4).bin.lzma,$(KDIR)/vmlinux-$(1)$(4).uImage,$(3))
 endef
 
+define TotolinkMkImageLzmaDtb
+	$(call PatchKernelLzmaDtb,$(1),$(2),$(4))
+	$(call
+TotolinkuImage,lzma,$(KDIR)/vmlinux-$(1)$(4).bin.lzma,$(KDIR)/vmlinux-$(1)$(4).uImage,$(3),$(SVNNUM))
+endef
+
 # $(1), Rootfs type, e.g. squashfs
 # $(2), lowercase board name
 # $(3), DTS filename without .dts extension
@@ -131,6 +150,11 @@ define BuildFirmware/OF
 	$(call MkImageSysupgrade/$(1),$(1),$(2),$(4),$(6))
 endef
 
+define BuildFirmware/TotolinkOF  
+	$(call TotolinkMkImageLzmaDtb,$(2),$(3),$(5))
+	$(call TotolinkSysupgrade/$(1),$(1),$(2),$(4),$(5))
+endef
+
 # $(1), squashfs/initramfs
 # $(2), lowercase board name
 # $(3), DTS filename without .dts extension
@@ -139,6 +163,12 @@ define BuildFirmware/OF/initramfs
 	$(call MkImageLzmaDtb,$(2),$(3),$(4),-initramfs)
 	$(CP) $(KDIR)/vmlinux-$(2)-initramfs.uImage $(call imgname,$(1),$(2))-uImage.bin
 endef
+
+define BuildFirmware/TotolinkOF/initramfs
+	$(call TotolinkMkImageLzmaDtb,$(2),$(3),$(4),-initramfs)
+	$(CP) $(KDIR)/vmlinux-$(2)-initramfs.uImage $(call imgname,$(1),$(2))-uImage.bin
+endef
+
 
 # Build images for default ralink layout for 4MB flash
 # kernel + roots = 0x3b0000
@@ -158,10 +188,16 @@ BuildFirmware/Default4M/initramfs=$(call BuildFirmware/OF/initramfs,$(1),$(2),$(
 ralink_default_fw_size_8M=8060928
 BuildFirmware/Default8M/squashfs=$(call BuildFirmware/OF,$(1),$(2),$(3),$(ralink_default_fw_size_8M),$(4))
 BuildFirmware/Default8M/initramfs=$(call BuildFirmware/OF/initramfs,$(1),$(2),$(3),$(4))
+BuildFirmware/Totolink8M/squashfs=$(call BuildFirmware/TotolinkOF,$(1),$(2),$(3),$(ralink_default_fw_size_8M),$(4))
+BuildFirmware/Totolink8M/initramfs=$(call BuildFirmware/TotolinkOF/initramfs,$(1),$(2),$(3),$(4))
+
 
 ralink_default_fw_size_16M=16121856
 BuildFirmware/Default16M/squashfs=$(call BuildFirmware/OF,$(1),$(2),$(3),$(ralink_default_fw_size_16M),$(4))
 BuildFirmware/Default16M/initramfs=$(call BuildFirmware/OF/initramfs,$(1),$(2),$(3),$(4))
+BuildFirmware/Totolink16M/squashfs=$(call BuildFirmware/TotolinkOF,$(1),$(2),$(3),$(ralink_default_fw_size_16M),$(4))
+BuildFirmware/Totolink16M/initramfs=$(call BuildFirmware/TotolinkOF/initramfs,$(1),$(2),$(3),$(4))
+
 
 ralink_default_fw_size_32M=33226752
 BuildFirmware/Default32M/squashfs=$(call BuildFirmware/OF,$(1),$(2),$(3),$(ralink_default_fw_size_32M),$(4))
@@ -238,7 +274,6 @@ define BuildFirmware/PorayDualSize/squashfs
 	fi
 endef
 BuildFirmware/PorayDualSize/initramfs=$(call BuildFirmware/DefaultDualSize/initramfs,$(1),$(2),$(3))
-
 
 ifeq ($(SUBTARGET),rt288x)
 include rt288x.mk

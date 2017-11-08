@@ -10,6 +10,14 @@ define Device/LinkIt7688
 endef
 TARGET_DEVICES += LinkIt7688
 
+define Device/AP0165
+  DTS := AP0165
+  IMAGE_SIZE := $(ralink_default_fw_size_16M)
+  DEVICE_TITLE := TOTOLINK CS560RP
+  DEVICE_PACKAGES:= kmod-usb2 kmod-usb-ohci uboot-envtools
+endef
+TARGET_DEVICES += AP0165
+
 define Device/wrtnode2r
   DTS := WRTNODE2R
   IMAGE_SIZE := $(ralink_default_fw_size_16M)

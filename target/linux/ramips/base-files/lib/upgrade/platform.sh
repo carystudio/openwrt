@@ -1,4 +1,5 @@
 #
+
 # Copyright (C) 2010 OpenWrt.org
 #
 
@@ -97,6 +98,7 @@ platform_check_image() {
 	nbg-419n|\
 	nw718|\
 	oy-0001|\
+	ap0165|\
 	pbr-m1|\
 	psg1208|\
 	psg1218|\
